@@ -10,6 +10,9 @@ struct AddPackageCommand: AsyncParsableCommand {
     @Argument(help: "The package to add")
     var packageName: String
 
+    @Flag(help: "Prints out what would be added to Package.swift without modifying it.")
+    var dryRun = false
+
     mutating func runAsync() async throws {
         packageName = packageName.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -24,10 +27,15 @@ struct AddPackageCommand: AsyncParsableCommand {
         let packageURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Package.swift")
         let file = try SyntaxParser.parse(packageURL)
         let modified = PackageDependencyRewriter(packageToAdd: package).visit(file)
-        
+
         var modifiedContents = ""
         modified.write(to: &modifiedContents)
-        print(modifiedContents)
+
+        if dryRun {
+            print(modified)
+        } else {
+            // write to file
+        }
     }
 
     private func loadPackageInfo() async throws -> PackageInfo? {
@@ -59,9 +67,7 @@ struct AddPackageCommand: AsyncParsableCommand {
         }
 
         let contents = String(data: data, encoding: .utf8)!
-        print("parsing dump....")
         let dump = try await PackageDump.parse(packageContents: contents)
-        print("parsing tags....")
         let tags = try await GithubApi.fetchTags(repo: packageName)
 
         return PackageInfo(name: dump.name,
