@@ -23,7 +23,11 @@ struct AddPackageCommand: AsyncParsableCommand {
         // assume for now the current directory is where our Package.swift file is
         let packageURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Package.swift")
         let file = try SyntaxParser.parse(packageURL)
-
+        let modified = PackageDependencyRewriter(packageToAdd: package).visit(file)
+        
+        var modifiedContents = ""
+        modified.write(to: &modifiedContents)
+        print(modifiedContents)
     }
 
     private func loadPackageInfo() async throws -> PackageInfo? {
@@ -55,7 +59,9 @@ struct AddPackageCommand: AsyncParsableCommand {
         }
 
         let contents = String(data: data, encoding: .utf8)!
+        print("parsing dump....")
         let dump = try await PackageDump.parse(packageContents: contents)
+        print("parsing tags....")
         let tags = try await GithubApi.fetchTags(repo: packageName)
 
         return PackageInfo(name: dump.name,

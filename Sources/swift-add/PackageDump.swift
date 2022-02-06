@@ -81,9 +81,12 @@ extension PackageDump {
 
             try process.run()
             process.waitUntilExit()
+            
 
             switch process.terminationStatus {
-            case 0: return stdOutData
+            case 0:
+                assert(!stdOutData.isEmpty)
+                return stdOutData
             default:
                 let error = String(data: stdErrData, encoding: .utf8) ?? ""
                 throw DumpPackageError(error: error)
