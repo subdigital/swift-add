@@ -81,7 +81,6 @@ extension PackageDump {
 
             try process.run()
             process.waitUntilExit()
-            
 
             switch process.terminationStatus {
             case 0:

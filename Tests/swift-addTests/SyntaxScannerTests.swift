@@ -6,7 +6,7 @@ final class SyntaxScannerTests: XCTestCase {
     let package = PackageInfo(name: "Files", url: URL(string: "https://github.com/johnsundell/Files.git")!, version: "0.4.1")
     let packageSwift = """
     import PackageDescription
-    
+
     let package = Package(
         name: "DemoPackage",
         dependencies: [
@@ -14,15 +14,14 @@ final class SyntaxScannerTests: XCTestCase {
         ]
     )
     """
-    
+
     func testRewriter() throws {
         let file = try SyntaxParser.parse(source: packageSwift)
         var output = ""
         PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
-        print(output)
         let expected = """
         import PackageDescription
-        
+
         let package = Package(
             name: "DemoPackage",
             dependencies: [
