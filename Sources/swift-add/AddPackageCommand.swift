@@ -10,6 +10,9 @@ struct AddPackageCommand: AsyncParsableCommand {
     @Argument(help: "The package to add")
     var packageName: String
 
+    @Option(help: "The branch to use")
+    var branch: String = "main"
+
     @Flag(help: "Prints out what would be added to Package.swift without modifying it.")
     var dryRun = false
 
@@ -43,7 +46,7 @@ struct AddPackageCommand: AsyncParsableCommand {
         if packageName.contains("/") {
             packageInfo = try await fetchPackageFromGithub()
         } else {
-            print("use a repo/project format for now")
+            fatalError("use a repo/project format for now")
         }
         return packageInfo
     }
