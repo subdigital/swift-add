@@ -12,27 +12,101 @@ class PackageDependencyRewriter: SyntaxRewriter {
             return ExprSyntax(node)
         }
 
-        // TODO: handle case where there is no dependencies arg
-        let (index, deps) = node.argumentList.enumerated().first(where: { (index, tupleExpr) in tupleExpr.label?.text == "dependencies" })!
+        guard let (index, depsArray) = node.findArgument(name: "dependencies", as: ArrayExprSyntax.self) else {
+            // TODO: handle case where there is no dependencies arg
+            return ExprSyntax(node)
+        }
 
-        let depsArray = deps.expression.as(ArrayExprSyntax.self)!
+        var newNode = node
+        
+        addPackageToDependenciesArray(call: &newNode)
+        updateTargetDependencies(call: &newNode)
+        // print("UPDATED TARGETS:", updatedTargets)
+
+        return ExprSyntax(newNode)
+    }
+
+    func deriveIndentationTrivia(_ call: FunctionCallExprSyntax, level: Int) -> TriviaPiece {
+        .spaces(4 * level)
+    }
+
+    func updateTargetDependencies(call: inout FunctionCallExprSyntax) {
+        guard let (targetsIndex, targets) = call.findArgument(name: "targets", as: ArrayExprSyntax.self) else { return }
+
+        // always add to first target?
+        guard let target = targets.elements.first else {
+            // targets is empty
+            return
+        }
+
+        guard var targetCall = target.expression.as(FunctionCallExprSyntax.self) else {
+            return
+        }
+        
+        if var (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
+            depsArray.ensuresTrailingCommaOnLastElement()
+            depsArray = depsArray.addElement(.init {
+                $0.useExpression(self.createTargetDependency())
+            }.withLeadingTrivia(
+                .newlines(1).appending(deriveIndentationTrivia(call, level: 4))
+            ))
+            targetCall.argumentList.replaceArgument(name: "dependencies", expression: ExprSyntax(depsArray))
+            let modifiedTargets = targets.elements.replacing(childAt: 0, with: ArrayElementSyntax {
+                $0.useExpression(ExprSyntax(targetCall))
+                $0.useTrailingComma(SyntaxFactory.makeCommaToken())
+            })
+            var array = ArrayExprSyntax({ _ in })
+            array.elements = modifiedTargets
+            call.argumentList.replaceArgument(name: "targets", expression: array)
+        } else {
+            // insert new dependencies section
+        }
+        
+    }
+    
+    private func createTargetDependency() -> ExprSyntax {
+        // .product(name: ..., package: ...)
+        ExprSyntax(
+            FunctionCallExprSyntax { fn in
+                fn.useCalledExpression(
+                    ExprSyntax(
+                        MemberAccessExprSyntax { memberAccess in
+                            memberAccess.useDot(SyntaxFactory.makePrefixPeriodToken())
+                            memberAccess.useName(SyntaxFactory.makeIdentifier("product"))
+                        }
+                    )
+                )
+                fn.useLeftParen(SyntaxFactory.makeLeftParenToken())
+                fn.addArgument(.init { arg in
+                    arg.useLabel(SyntaxFactory.makeIdentifier("name"))
+                    arg.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
+                    arg.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr("????")))
+                }.withTrailingComma(SyntaxFactory.makeCommaToken().withTrailingTrivia(.spaces(1))))
+                fn.addArgument(.init { arg in
+                    arg.useLabel(SyntaxFactory.makeIdentifier("package"))
+                    arg.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
+                    arg.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(packageToAdd.name)))
+                })
+                fn.useRightParen(SyntaxFactory.makeRightParenToken())
+            }
+        )
+    }
+
+    func addPackageToDependenciesArray(call: inout FunctionCallExprSyntax) {
+        // TODO: smarter handling of indentation
+        
         let element = SyntaxFactory
             .makeArrayElement(expression: ExprSyntax(makePackageDependency()), trailingComma: nil)
             .withLeadingTrivia(.newlines(1).appending(.spaces(8)))
         
-        var modifiedArray = depsArray
-        if !depsArray.elements.isEmpty {
-            // take the last one and append a trailing comma
-            var lastElement = depsArray.elements.last!
-            lastElement.trailingComma = SyntaxFactory.makeCommaToken()
-            modifiedArray.elements = modifiedArray.elements.replacing(childAt: depsArray.elements.count - 1, with: lastElement)
+        guard var (_, dependencies) = call.findArgument(name: "dependencies", as: ArrayExprSyntax.self) else {
+            // TODO: add dependencies section
+            return
         }
-        
-        modifiedArray = modifiedArray.addElement(element)
-        let newDeps = deps.withExpression(ExprSyntax(modifiedArray))
-
-        let newNode = node.withArgumentList(node.argumentList.replacing(childAt: index, with: newDeps))
-        return ExprSyntax(newNode)
+        dependencies.ensuresTrailingCommaOnLastElement()
+        dependencies = dependencies.addElement(element)
+     
+        call.argumentList.replaceArgument(name: "dependencies", expression: dependencies)
     }
 
     func makePackageDependency() -> FunctionCallExprSyntax {
@@ -45,7 +119,7 @@ class PackageDependencyRewriter: SyntaxRewriter {
             builder.useCalledExpression(ExprSyntax(memberAccess))
             builder.useLeftParen(SyntaxFactory.makeLeftParenToken())
 
-            // url
+            // url: "....",
             builder.addArgument(TupleExprElementSyntax { builder in
                 builder.useLabel(SyntaxFactory.makeIdentifier("url"))
                 builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))

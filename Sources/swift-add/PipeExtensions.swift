@@ -5,7 +5,6 @@ extension Pipe {
         self.init()
         fileHandleForReading.readabilityHandler = handler
     }
-
 }
 
 class PipeToString {

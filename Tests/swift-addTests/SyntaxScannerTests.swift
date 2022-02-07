@@ -15,24 +15,6 @@ final class SyntaxScannerTests: XCTestCase {
     )
     """
 
-    func testRewriter() throws {
-        let file = try SyntaxParser.parse(source: packageSwift)
-        var output = ""
-        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
-        let expected = """
-        import PackageDescription
-
-        let package = Package(
-            name: "DemoPackage",
-            dependencies: [
-                .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
-                .package(url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
-            ]
-        )
-        """
-        XCTAssertEqual(output, expected)
-    }
-
     func testScanForPatternReturnsNextToken() throws {
         let file = try SyntaxParser.parse(source: packageSwift)
         let scanner = SyntaxScanner(file: file)
