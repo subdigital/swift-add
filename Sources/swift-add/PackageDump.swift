@@ -84,7 +84,10 @@ extension PackageDump {
 
             switch process.terminationStatus {
             case 0:
-                assert(!stdOutData.isEmpty)
+                if stdOutData.isEmpty {
+                    let error = String(data: stdErrData, encoding: .utf8) ?? ""
+                    fatalError(error)
+                }
                 return stdOutData
             default:
                 let error = String(data: stdErrData, encoding: .utf8) ?? ""
