@@ -35,9 +35,10 @@ struct AddPackageCommand: AsyncParsableCommand {
         modified.write(to: &modifiedContents)
 
         if dryRun {
-            print(modified)
+            print(modifiedContents)
         } else {
-            // write to file
+            let data = modifiedContents.data(using: .utf8)!
+            try data.write(to: packageURL, options: .atomicWrite)
         }
     }
 
@@ -70,13 +71,21 @@ struct AddPackageCommand: AsyncParsableCommand {
         }
 
         let contents = String(data: data, encoding: .utf8)!
-        let dump = try await PackageDump.parse(packageContents: contents)
-        let tags = try await GithubApi.fetchTags(repo: packageName)
+        async let dump = try PackageDump.parse(packageContents: contents)
+        async let repo = try GithubApi.fetchRepo(repo: packageName)
+        async let tags = try GithubApi.fetchTags(repo: packageName)
+        let products: [ProductInfo] = try await dump.products.map { product in
+            switch product.type {
+            case "library": return .library(product.name)
+            default:
+                fatalError("Unhandled product type: \(product.type)")
+            }
+        }
 
-        return PackageInfo(name: dump.name,
-                           url: URL(string: "https://github.com/\(packageName)")!,
-                           version: tags.last!
-        )
+        return try await PackageInfo(name: dump.name,
+                           url: repo.htmlUrl,
+                           version: tags.last!,
+                           products: products)
     }
 }
 

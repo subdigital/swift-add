@@ -3,7 +3,10 @@ import SwiftSyntax
 @testable import swift_add
 
 final class SyntaxScannerTests: XCTestCase {
-    let package = PackageInfo(name: "Files", url: URL(string: "https://github.com/johnsundell/Files.git")!, version: "0.4.1")
+    let package = PackageInfo(name: "Files",
+                              url: URL(string: "https://github.com/johnsundell/Files.git")!,
+                              version: "0.4.1",
+                              products: [.library("Files")])
     let packageSwift = """
     import PackageDescription
 

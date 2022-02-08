@@ -1,0 +1,16 @@
+import PackageDescription
+
+let package = Package(
+    name: "SamplePackage",
+    platforms: [
+        .macOS(.v12),
+    ],
+    dependencies: [
+        .package(name: "Validate", url: "https://github.com/reddavis/Validate.git", from: "5.5"),
+    ],
+    targets: [
+        .target(name: "SampleLibrary", dependencies: [
+            .product(name: "Validate", package: "Validate")
+        ])
+    ]
+)

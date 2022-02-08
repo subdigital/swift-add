@@ -5,3 +5,4 @@
 xcuserdata/
 DerivedData/
 .swiftpm/
+swift-addTests/SamplePackage/Package.swift

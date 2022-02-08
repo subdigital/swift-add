@@ -3,7 +3,7 @@ import SwiftSyntax
 @testable import swift_add
 
 final class PackageDependencyRewriterTests: XCTestCase {
-    let package = PackageInfo(name: "Files", url: URL(string: "https://github.com/johnsundell/Files.git")!, version: "0.4.1")
+    let package = PackageInfo(name: "Files", url: URL(string: "https://github.com/johnsundell/Files.git")!, version: "0.4.1", products: [.library("Files")])
     let packageSwiftWithNoTargets = """
     import PackageDescription
 
@@ -14,14 +14,6 @@ final class PackageDependencyRewriterTests: XCTestCase {
         ]
     )
     """
-
-    /*
-      .target(name: "dummy"),
-      .target(name: "dummy2", dependencies: []),
-      .target(name: "dummy3", dependencies: [
-            .product(name: "ArgumentParser", package: "swift-argument-parser"),
-      ]
-    */
 
     func packageSwiftWithTarget(_ targetString: String) -> String {
         """
@@ -34,8 +26,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
             ],
             targets: [
                 \(targetString)
-            ]),
-        )
+            ])
         """
     }
 
@@ -50,7 +41,31 @@ final class PackageDependencyRewriterTests: XCTestCase {
             name: "DemoPackage",
             dependencies: [
                 .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
-                .package(url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+            ]
+        )
+        """
+        XCTAssertEqual(output, expected)
+    }
+
+    func testInsertsDependenciesArrayIfNeeded() throws {
+        let packageSwiftWithNoDeps = """
+        import PackageDescription
+
+        let package = Package(
+            name: "DemoPackage"
+        )
+        """
+        let file = try SyntaxParser.parse(source: packageSwiftWithNoDeps)
+        var output = ""
+        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        let expected = """
+        import PackageDescription
+
+        let package = Package(
+            name: "DemoPackage",
+            dependencies: [
+                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
             ]
         )
         """
@@ -61,7 +76,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
         let packageSwift = packageSwiftWithTarget("""
                                                   .target(name: "dummy", dependencies: [
                                                               .product(name: "foo")
-                                                          ]
+                                                          ])
                                                   """)
         let file = try SyntaxParser.parse(source: packageSwift)
         var output = ""
@@ -73,15 +88,14 @@ final class PackageDependencyRewriterTests: XCTestCase {
             name: "DemoPackage",
             dependencies: [
                 .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
-                .package(url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
             ],
-            .targets: [
+            targets: [
                 .target(name: "dummy", dependencies: [
                     .product(name: "foo"),
                     .product(name: "Files", package: "Files")
-                ]
-            ]
-        )
+                ])
+            ])
         """
         XCTAssertEqual(output, expected)
     }

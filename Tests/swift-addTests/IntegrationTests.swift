@@ -3,6 +3,30 @@ import class Foundation.Bundle
 @testable import swift_add
 
 final class IntegrationTests: XCTestCase {
+    var samplePackageURL: URL!
+    var packageSwiftPath: String!
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
+        let testsDir = URL(fileURLWithPath: #file).deletingLastPathComponent()
+        samplePackageURL = testsDir.appendingPathComponent("SamplePackage")
+        packageSwiftPath = samplePackageURL.appendingPathComponent("Package.swift").path
+        let packageSwiftStarterPath = samplePackageURL.appendingPathComponent("Package.swift.starter").path
+        let fm = FileManager.default
+        if fm.fileExists(atPath: packageSwiftPath) {
+            try FileManager.default.removeItem(atPath: packageSwiftPath)
+        }
+        try FileManager.default.copyItem(atPath: packageSwiftStarterPath, toPath: packageSwiftPath)
+    }
+
+    override func tearDownWithError() throws {
+        try super.tearDownWithError()
+        let fm = FileManager.default
+        if fm.fileExists(atPath: packageSwiftPath) {
+            try FileManager.default.removeItem(atPath: packageSwiftPath)
+        }
+    }
 
     struct Output {
         let stdOut: String?
@@ -23,6 +47,7 @@ final class IntegrationTests: XCTestCase {
 
         let out = PipeToString()
         let err = PipeToString()
+        process.currentDirectoryURL = samplePackageURL
         process.standardOutput = out.pipe
         process.standardError = err.pipe
 
@@ -50,7 +75,13 @@ final class IntegrationTests: XCTestCase {
         if output.wasSuccessful {
             XCTAssertEqual(
                 output.stdOut!.trimmingCharacters(in: .whitespacesAndNewlines),
-                "Added Files (4.2.0) from https://github.com/johnsundell/files")
+                "Added Files (4.2.0) from https://github.com/JohnSundell/Files")
+
+            let manifest =
+                String(data: try Data(contentsOf: URL(fileURLWithPath: packageSwiftPath)),
+                    encoding: .utf8) ?? ""
+            XCTAssertContains(manifest, ".package(name: \"Files\", url: \"https://github.com/JohnSundell/Files\", from: \"4.2.0\")")
+            XCTAssertContains(manifest, ".product(name: \"Files\", package: \"Files\")")
         } else {
             let error = output.stdErr ?? "?"
             XCTFail("Command failed: \n\n\(error)\n\n")

@@ -20,7 +20,7 @@ let package = Package(
         .package(
             name: "SwiftPM",
             url: "https://github.com/apple/swift-package-manager.git",
-            branch: "release/5.5")
+            branch: "release/5.5"),
     ],
     targets: [
         .executableTarget(
@@ -29,11 +29,17 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftPMDataModel-auto", package: "SwiftPM"),
                 .product(name: "SwiftSyntax", package: "SwiftSyntax"),
-                .target(name: "_InternalSwiftSyntaxParser")
+                .target(name: "_InternalSwiftSyntaxParser"),
             ]),
         .binaryTarget(name: "_InternalSwiftSyntaxParser", url: syntaxLib.url, checksum: syntaxLib.checksum),
         .testTarget(
             name: "swift-addTests",
-            dependencies: ["swift-add"]),
+            dependencies: ["swift-add"],
+            exclude: [
+                "SamplePackage/"
+            ],
+            resources: [
+                .copy("SamplePackage/Package.swift.starter")
+            ])
     ]
 )
