@@ -9,7 +9,7 @@ struct PackageInfo {
 
 enum ProductInfo {
     case library(String)
-    
+
     var name: String {
         switch self {
         case .library(let name): return name

@@ -38,7 +38,7 @@ extension FunctionCallExprSyntax {
         }
         var argList = argumentList
         argList.ensuresTrailingCommaAfterElementAtIndex(index, trailingTrivia: onNewLine ? .zero : .spaces(1))
-        
+
         let newArgIndex = index + 1
         if newArgIndex < argList.count - 1 {
             let commaTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .spaces(1)
@@ -54,7 +54,7 @@ extension FunctionCallExprSyntax {
 extension TupleExprElementListSyntax {
     mutating func ensuresTrailingCommaAfterElementAtIndex(_ index: Int, trailingTrivia: Trivia = .zero) {
         guard !isEmpty else { return }
-        
+
         let childIndex = children.index(children.startIndex, offsetBy: index)
 
         // take the last one and append a trailing comma
@@ -72,6 +72,40 @@ extension ArrayExprSyntax {
         var lastElement = elements.last!
         lastElement.trailingComma = SyntaxFactory.makeCommaToken()
         elements = elements.replacing(childAt: elements.count - 1, with: lastElement)
+    }
+
+    func appendingElementsFormatted(elements newElements: [ArrayElementSyntax], baseIndentLevel: Int) -> Self {
+        func newLine() -> Trivia {
+            .newlines(1).appending(.spaces(4 * baseIndentLevel))
+        }
+        func newLineIndent() -> Trivia {
+            .newlines(1).appending(.spaces(4 * (baseIndentLevel + 1)))
+        }
+        return ArrayExprSyntax { builder in
+            builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(
+                trailingTrivia: newLineIndent()))
+            for (index, var el) in elements.enumerated() {
+                if index == elements.count - 1 {
+                    el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
+                }
+                builder.addElement(
+                    el
+                    .withLeadingTrivia(.zero)
+                    .withTrailingTrivia(newLineIndent())
+                )
+            }
+
+            for (index, var el) in newElements.enumerated() {
+                if index == elements.count - 1 {
+                    el = el.withTrailingTrivia(newLine())
+                } else {
+                    el = el.withTrailingComma(SyntaxFactory.makeCommaToken(trailingTrivia: newLineIndent()))
+                }
+                builder.addElement(el)
+            }
+
+            builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())
+        }
     }
 }
 

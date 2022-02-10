@@ -2,13 +2,15 @@ import SwiftSyntax
 
 class PackageDependencyRewriter: SyntaxRewriter {
     let packageToAdd: PackageInfo
+    let products: [ProductInfo]
 
-    init(packageToAdd: PackageInfo) {
+    init(packageToAdd: PackageInfo, products: [ProductInfo]) {
         self.packageToAdd = packageToAdd
+        self.products = products
     }
-    
+
     private var rootNode: FunctionCallExprSyntax!
-    
+
     func indent(level: Int, withNewLine: Bool = false) -> Trivia {
         .newlines(withNewLine ? 1 : 0).appending(deriveIndentationTrivia(rootNode, level: level))
     }
@@ -38,12 +40,9 @@ class PackageDependencyRewriter: SyntaxRewriter {
     func deriveIndentationTrivia(_ call: FunctionCallExprSyntax, level: Int) -> TriviaPiece {
         .spaces(4 * level)
     }
-    
+
     func updateTargetDependencies(call: inout FunctionCallExprSyntax) {
         guard let (_, targets) = call.findArgument(name: "targets", as: ArrayExprSyntax.self) else { return }
-
-        // TODO: prompt the user if there is more than one product
-        guard let product = packageToAdd.products.first else { return }
 
         // always add to first target?
         guard let target = targets.elements.first else {
@@ -55,27 +54,15 @@ class PackageDependencyRewriter: SyntaxRewriter {
         guard var targetCall = target.expression.as(FunctionCallExprSyntax.self) else {
             return
         }
-        
+
         if let (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
-            let newArray = ArrayExprSyntax { builder in
-                builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(trailingTrivia: indent(level: 3, withNewLine: true)))
-                for (index, var el) in depsArray.elements.enumerated() {
-                    if index == depsArray.elements.count - 1 {
-                        el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
-                    }
-                    builder.addElement(
-                        el
-                            .withLeadingTrivia(.zero)
-                            .withTrailingTrivia(indent(level: 3, withNewLine: true))
-                    )
-                }
-                let newEl = ArrayElementSyntax {
+
+            let newElements = products.map { product in
+                ArrayElementSyntax {
                     $0.useExpression(self.createTargetDependency(product: product))
-                }.withTrailingTrivia(indent(level: 2, withNewLine: true))
-                builder.addElement(newEl)
-                                     
-                builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())
+                }
             }
+            let newArray = depsArray.appendingElementsFormatted(elements: newElements, baseIndentLevel: 2)
 
             targetCall.argumentList.replaceArgument(name: "dependencies", expression: ExprSyntax(newArray))
             let modifiedTargets = targets.elements.replacing(childAt: 0, with: ArrayElementSyntax {
@@ -95,7 +82,7 @@ class PackageDependencyRewriter: SyntaxRewriter {
             // insert new dependencies section
         }
     }
-    
+
     private func createTargetDependency(product: ProductInfo) -> ExprSyntax {
         // .product(name: ..., package: ...)
         ExprSyntax(
@@ -126,18 +113,18 @@ class PackageDependencyRewriter: SyntaxRewriter {
 
     func addPackageToDependenciesArray(call: inout FunctionCallExprSyntax) {
         // TODO: smarter handling of indentation
-        
+
         let element = SyntaxFactory
             .makeArrayElement(expression: ExprSyntax(makePackageDependency()), trailingComma: nil)
             .withLeadingTrivia(.newlines(1).appending(.spaces(8)))
-        
+
         guard var (_, dependencies) = call.findArgument(name: "dependencies", as: ArrayExprSyntax.self) else {
             // TODO: add dependencies section
             return
         }
         dependencies.ensuresTrailingCommaOnLastElement()
         dependencies = dependencies.addElement(element)
-     
+
         call.argumentList.replaceArgument(name: "dependencies", expression: dependencies)
     }
 

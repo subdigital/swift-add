@@ -33,7 +33,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
     func testAddsPackage() throws {
         let file = try SyntaxParser.parse(source: packageSwiftWithNoTargets)
         var output = ""
-        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
         let expected = """
         import PackageDescription
 
@@ -58,7 +58,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
         """
         let file = try SyntaxParser.parse(source: packageSwiftWithNoDeps)
         var output = ""
-        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
         let expected = """
         import PackageDescription
 
@@ -80,7 +80,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
                                                   """)
         let file = try SyntaxParser.parse(source: packageSwift)
         var output = ""
-        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
         let expected = """
         import PackageDescription
 
@@ -106,7 +106,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
                                                   """)
         let file = try SyntaxParser.parse(source: packageSwift)
         var output = ""
-        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
         let expected = """
         import PackageDescription
 
