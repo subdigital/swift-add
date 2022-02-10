@@ -71,8 +71,8 @@ extension PackageDump {
             }
             let process = createSwiftDumpPackageProcess(path: dir, stdOut: stdOut, stdErr: stdErr)
 
-            // timeout after 10 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            // timeout after a bit
                 if process.isRunning {
                     print("Timeout. Attempting to terminate process...")
                     process.terminate()

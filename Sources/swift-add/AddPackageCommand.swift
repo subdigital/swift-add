@@ -43,13 +43,11 @@ struct AddPackageCommand: AsyncParsableCommand {
     }
 
     private func loadPackageInfo() async throws -> PackageInfo? {
-        var packageInfo: PackageInfo? = nil
         if packageName.contains("/") {
-            packageInfo = try await fetchPackageFromGithub()
+            return try await fetchPackageFromGithub()
         } else {
             fatalError("use a repo/project format for now")
         }
-        return packageInfo
     }
 
     private func fetchPackageFromGithub(branch: String = "main") async throws -> PackageInfo {
