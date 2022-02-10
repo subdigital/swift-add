@@ -38,12 +38,12 @@ final class IntegrationTests: XCTestCase {
         }
     }
 
-    func runCommand(args: String) throws -> Output {
+    func runCommand(args: String...) throws -> Output {
         let executable = productsDirectory.appendingPathComponent("swift-add")
 
         let process = Process()
         process.executableURL = executable
-        process.arguments = args.split(separator: " ").map(String.init)
+        process.arguments = args.filter { !$0.isEmpty }
 
         let out = PipeToString()
         let err = PipeToString()
@@ -52,7 +52,7 @@ final class IntegrationTests: XCTestCase {
         process.standardError = err.pipe
 
         print("> \(process.executableURL!.lastPathComponent) \((process.arguments ?? []).joined(separator: " "))")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(10)) {
             print("TIMEOUT. Terminating.")
             if process.isRunning {
                 process.terminate()
@@ -70,7 +70,7 @@ final class IntegrationTests: XCTestCase {
         XCTAssertContains(stdErr, "Missing expected argument '<package-name>'")
     }
 
-    func testWithGithubPackage() throws {
+    func testWithGithubPackage_Files() throws {
         let output = try runCommand(args: "johnsundell/files")
         if output.wasSuccessful {
             XCTAssertEqual(
@@ -82,6 +82,24 @@ final class IntegrationTests: XCTestCase {
                     encoding: .utf8) ?? ""
             XCTAssertContains(manifest, ".package(name: \"Files\", url: \"https://github.com/JohnSundell/Files\", from: \"4.2.0\")")
             XCTAssertContains(manifest, ".product(name: \"Files\", package: \"Files\")")
+        } else {
+            let error = output.stdErr ?? "?"
+            XCTFail("Command failed: \n\n\(error)\n\n")
+        }
+    }
+
+    func testWithGithubPackage_Firebase() throws {
+        let output = try runCommand(args: "firebase/firebase-ios-sdk")
+        let manifest =
+        String(data: try Data(contentsOf: URL(fileURLWithPath: packageSwiftPath)),
+               encoding: .utf8) ?? ""
+        if output.wasSuccessful {
+            XCTAssertEqual(
+                output.stdOut!.trimmingCharacters(in: .whitespacesAndNewlines),
+                "Added Firebase (8.12.1) from https://github.com/firebase/firebase-ios-sdk")
+
+            XCTAssertContains(manifest, ".package(name: \"Firebase\", url: \"https://github.com/firebase/firebase-ios-sdk\", from: \"8.12.1\"")
+            XCTAssertContains(manifest, ".product(name: \"FirebaseAnalytics\", package: \"Firebase\")")
         } else {
             let error = output.stdErr ?? "?"
             XCTFail("Command failed: \n\n\(error)\n\n")
@@ -101,8 +119,3 @@ final class IntegrationTests: XCTestCase {
     }
 }
 
-func XCTAssertContains(_ input: String, _ substring: String, file: StaticString = #file, line: UInt = #line) {
-    if !input.contains(substring) {
-        XCTFail("Expected the string:\n\(input)\nto contain substring:\n\(substring)", file: file, line: line)
-    }
-}
