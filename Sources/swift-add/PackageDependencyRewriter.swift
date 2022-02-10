@@ -6,8 +6,15 @@ class PackageDependencyRewriter: SyntaxRewriter {
     init(packageToAdd: PackageInfo) {
         self.packageToAdd = packageToAdd
     }
+    
+    private var rootNode: FunctionCallExprSyntax!
+    
+    func indent(level: Int, withNewLine: Bool = false) -> Trivia {
+        .newlines(withNewLine ? 1 : 0).appending(deriveIndentationTrivia(rootNode, level: level))
+    }
 
     override func visit(_ node: FunctionCallExprSyntax) -> ExprSyntax {
+        self.rootNode = node
         guard node.calledExpression.as(IdentifierExprSyntax.self)?.identifier.text == "Package" else {
             return ExprSyntax(node)
         }
@@ -31,9 +38,11 @@ class PackageDependencyRewriter: SyntaxRewriter {
     func deriveIndentationTrivia(_ call: FunctionCallExprSyntax, level: Int) -> TriviaPiece {
         .spaces(4 * level)
     }
-
+    
     func updateTargetDependencies(call: inout FunctionCallExprSyntax) {
         guard let (_, targets) = call.findArgument(name: "targets", as: ArrayExprSyntax.self) else { return }
+
+        // TODO: prompt the user if there is more than one product
         guard let product = packageToAdd.products.first else { return }
 
         // always add to first target?
@@ -42,18 +51,33 @@ class PackageDependencyRewriter: SyntaxRewriter {
             return
         }
 
+        // .executableTarget(...)
         guard var targetCall = target.expression.as(FunctionCallExprSyntax.self) else {
             return
         }
+        
+        if let (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
+            let newArray = ArrayExprSyntax { builder in
+                builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(trailingTrivia: indent(level: 3, withNewLine: true)))
+                for (index, var el) in depsArray.elements.enumerated() {
+                    if index == depsArray.elements.count - 1 {
+                        el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
+                    }
+                    builder.addElement(
+                        el
+                            .withLeadingTrivia(.zero)
+                            .withTrailingTrivia(indent(level: 3, withNewLine: true))
+                    )
+                }
+                let newEl = ArrayElementSyntax {
+                    $0.useExpression(self.createTargetDependency(product: product))
+                }.withTrailingTrivia(indent(level: 2, withNewLine: true))
+                builder.addElement(newEl)
+                                     
+                builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())
+            }
 
-        if var (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
-            depsArray.ensuresTrailingCommaOnLastElement()
-            depsArray = depsArray.addElement(.init {
-                $0.useExpression(self.createTargetDependency(product: product))
-            }.withLeadingTrivia(
-                .newlines(1).appending(deriveIndentationTrivia(call, level: 3))
-            ))
-            targetCall.argumentList.replaceArgument(name: "dependencies", expression: ExprSyntax(depsArray))
+            targetCall.argumentList.replaceArgument(name: "dependencies", expression: ExprSyntax(newArray))
             let modifiedTargets = targets.elements.replacing(childAt: 0, with: ArrayElementSyntax {
                 $0.useExpression(ExprSyntax(targetCall))
                 if targets.elements.count > 1 {

@@ -99,5 +99,30 @@ final class PackageDependencyRewriterTests: XCTestCase {
         """
         XCTAssertEqual(output, expected)
     }
+    
+    func testAddsDependencyToFirstTargetWithInlineEmptyArray() throws {
+        let packageSwift = packageSwiftWithTarget("""
+                                                  .target(name: "dummy", dependencies: [])
+                                                  """)
+        let file = try SyntaxParser.parse(source: packageSwift)
+        var output = ""
+        PackageDependencyRewriter(packageToAdd: package).visit(file).write(to: &output)
+        let expected = """
+        import PackageDescription
+
+        let package = Package(
+            name: "DemoPackage",
+            dependencies: [
+                .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
+                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+            ],
+            targets: [
+                .target(name: "dummy", dependencies: [
+                    .product(name: "Files", package: "Files")
+                ])
+            ])
+        """
+        XCTAssertEqual(output, expected)
+    }
 
 }
