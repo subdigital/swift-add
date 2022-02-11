@@ -32,6 +32,11 @@ struct PackageDump: Decodable {
             }
         }
 
+        init(name: String, type: String) {
+            self.name = name
+            self.type = type
+        }
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             name = try container.decode(String.self, forKey: .name)

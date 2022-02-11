@@ -1,18 +1,22 @@
 import Foundation
 
-struct TagRef: Decodable {
-    let ref: String
-    var tag: String? {
-        ref.split(separator: "/").last
-        .flatMap(String.init)
-    }
-}
+enum Github {
 
-struct Repo: Decodable {
-    let name: String
-    let fullName: String
-    let url: URL
-    let htmlUrl: URL
+    struct TagRef: Decodable {
+        let ref: String
+        var tag: String? {
+            ref.split(separator: "/").last
+            .flatMap(String.init)
+        }
+    }
+
+    struct Repo: Decodable {
+        let name: String
+        let fullName: String
+        let url: URL
+        let htmlUrl: URL
+        let defaultBranch: String
+    }
 }
 
 enum GithubApi {
@@ -26,14 +30,14 @@ enum GithubApi {
         return decoder
     }()
 
-    static func fetchRepo(repo: String) async throws -> Repo {
+    static func fetchRepo(repo: String) async throws -> Github.Repo {
         let data = try await get(path: "repos/\(repo)")
-        return try jsonDecoder.decode(Repo.self, from: data)
+        return try jsonDecoder.decode(Github.Repo.self, from: data)
     }
 
     static func fetchTags(repo: String) async throws -> [String] {
         let data = try await get(path: "repos/\(repo)/git/refs/tags")
-        let tagRefs = try jsonDecoder.decode([TagRef].self, from: data)
+        let tagRefs = try jsonDecoder.decode([Github.TagRef].self, from: data)
         return tagRefs.compactMap(\.tag)
     }
 

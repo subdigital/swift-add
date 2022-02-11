@@ -114,40 +114,9 @@ struct AddPackageCommand: AsyncParsableCommand {
         }
     }
 
-    private func fetchPackageFromGithub(branch: String = "main") async throws -> PackageInfo {
-        // look for Package.swift in the root of the repo
-        // https://raw.githubusercontent.com/JohnSundell/Files/master/Package.swift
-        guard let url = URL(string: "https://raw.githubusercontent.com/\(packageName)/\(branch)/Package.swift") else {
-            throw InvalidPackageURL()
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: url)
-        let http = response as! HTTPURLResponse
-        if http.statusCode != 200 {
-            if branch == "main" {
-                // try again with master branch
-                return try await fetchPackageFromGithub(branch: "master")
-            } else {
-                throw PackageNotFound()
-            }
-        }
-
-        let contents = String(data: data, encoding: .utf8)!
-        async let dump = try PackageDump.parse(packageContents: contents)
-        async let repo = try GithubApi.fetchRepo(repo: packageName)
-        async let tags = try GithubApi.fetchTags(repo: packageName)
-        let products: [ProductInfo] = try await dump.products.map { product in
-            switch product.type {
-            case "library": return .library(product.name)
-            default:
-                fatalError("Unhandled product type: \(product.type)")
-            }
-        }
-
-        return try await PackageInfo(name: dump.name,
-                           url: repo.htmlUrl,
-                           version: tags.last!,
-                           products: products)
+    private func fetchPackageFromGithub() async throws -> PackageInfo {
+        let source = try await GithubPackageSource(shortRepo: packageName)
+        return try await source.assemblePackage()
     }
 }
 
