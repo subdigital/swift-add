@@ -89,7 +89,7 @@ final class IntegrationTests: XCTestCase {
     }
 
     func testWithGithubPackage_Firebase() throws {
-        let output = try runCommand(args: "firebase/firebase-ios-sdk")
+        let output = try runCommand(args: "firebase/firebase-ios-sdk", "-p", "FirebaseAnalytics")
         let manifest =
         String(data: try Data(contentsOf: URL(fileURLWithPath: packageSwiftPath)),
                encoding: .utf8) ?? ""

@@ -81,27 +81,26 @@ extension ArrayExprSyntax {
         func newLineIndent() -> Trivia {
             .newlines(1).appending(.spaces(4 * (baseIndentLevel + 1)))
         }
+
         return ArrayExprSyntax { builder in
             builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(
                 trailingTrivia: newLineIndent()))
-            for (index, var el) in elements.enumerated() {
-                if index == elements.count - 1 {
+
+            let allElements = (elements + newElements)
+
+            // add existing elements
+            for (index, var el) in allElements.enumerated() {
+                let isLastElement = index == allElements.count - 1
+                if !isLastElement {
                     el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
                 }
-                builder.addElement(
-                    el
-                    .withLeadingTrivia(.zero)
-                    .withTrailingTrivia(newLineIndent())
-                )
-            }
 
-            for (index, var el) in newElements.enumerated() {
-                if index == elements.count - 1 {
-                    el = el.withTrailingTrivia(newLine())
-                } else {
-                    el = el.withTrailingComma(SyntaxFactory.makeCommaToken(trailingTrivia: newLineIndent()))
-                }
-                builder.addElement(el)
+                builder.addElement(el
+                    .withLeadingTrivia(.zero)
+                    .withTrailingTrivia(
+                        isLastElement ? newLine() : newLineIndent()
+                    )
+                )
             }
 
             builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())

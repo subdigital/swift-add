@@ -99,7 +99,7 @@ final class PackageDependencyRewriterTests: XCTestCase {
         """
         XCTAssertEqual(output, expected)
     }
-    
+
     func testAddsDependencyToFirstTargetWithInlineEmptyArray() throws {
         let packageSwift = packageSwiftWithTarget("""
                                                   .target(name: "dummy", dependencies: [])
