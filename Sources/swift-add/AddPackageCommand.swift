@@ -3,47 +3,6 @@ import Foundation
 import PackageModel
 import SwiftSyntax
 
-struct InvalidPackageURL: Error { }
-struct PackageNotFound: Error { }
-struct MultipleProductsError: Error, LocalizedError {
-    let packageInfo: PackageInfo
-    init(packageInfo: PackageInfo) {
-        self.packageInfo = packageInfo
-    }
-
-    var errorDescription: String? {
-        """
-        The package \(packageInfo.name) contains multiple products.
-        Choose which one(s) to integrate into your target with the `-p` flag.
-
-        Products in this package:
-        - \(packageInfo.products.map(\.name).joined(separator: "\n- "))
-
-        Example:
-
-        swift add <package> -p \(packageInfo.products.first!.name)
-
-        """
-    }
-}
-struct InvalidProduct: Error, LocalizedError {
-    let product: String
-    let packageInfo: PackageInfo
-    init(product: String, packageInfo: PackageInfo) {
-        self.product = product
-        self.packageInfo = packageInfo
-    }
-
-    var errorDescription: String? {
-        """
-        The product '\(product)' is not provided by the package \(packageInfo.name).
-
-        Valid products:
-        - \(packageInfo.products.map(\.name).joined(separator: "\n- "))
-        """
-    }
-}
-
 struct AddPackageCommand: AsyncParsableCommand {
     @Argument(help: "The package to add")
     var packageName: String
