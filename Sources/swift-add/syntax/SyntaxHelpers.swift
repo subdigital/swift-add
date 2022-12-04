@@ -25,6 +25,13 @@ extension FunctionCallExprSyntax {
         findArgument(name: name, as: type) != nil
     }
 
+    func getStringArgumentValue(name: String) -> String? {
+        if let (_, arg) = findArgument(name: name, as: StringLiteralExprSyntax.self) {
+            return String(describing: arg.segments)
+        }
+        return nil
+    }
+
     mutating func insertArgument<T: ExprSyntaxProtocol>(name: String, onNewLine: Bool, expr: T, after: String...) {
         guard let index = after.lazy.compactMap(findArgumentIndex).first else {
             print("Couldn't find any arg named: \(after)")

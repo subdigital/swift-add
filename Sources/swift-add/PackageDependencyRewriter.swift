@@ -112,17 +112,18 @@ class PackageDependencyRewriter: SyntaxRewriter {
     }
 
     func addPackageToDependenciesArray(call: inout FunctionCallExprSyntax) {
-        // TODO: smarter handling of indentation
-
-        let element = SyntaxFactory
-            .makeArrayElement(expression: ExprSyntax(makePackageDependency()), trailingComma: nil)
-            .withLeadingTrivia(.newlines(1).appending(.spaces(8)))
-
         guard var (_, dependencies) = call.findArgument(name: "dependencies", as: ArrayExprSyntax.self) else {
             // TODO: add dependencies section
             return
         }
+
+        let package = makePackageDependency()
+        guard !dependencies.containsPackage(self.packageToAdd) else { return }
+
         dependencies.ensuresTrailingCommaOnLastElement()
+        let element = SyntaxFactory
+            .makeArrayElement(expression: ExprSyntax(package), trailingComma: nil)
+            .withLeadingTrivia(.newlines(1).appending(.spaces(8)))
         dependencies = dependencies.addElement(element)
 
         call.argumentList.replaceArgument(name: "dependencies", expression: dependencies)
@@ -163,5 +164,17 @@ class PackageDependencyRewriter: SyntaxRewriter {
 
             builder.useRightParen(SyntaxFactory.makeRightParenToken())
         }
+    }
+}
+
+extension ArrayExprSyntax {
+    func containsPackage(_ packageInfo: PackageInfo) -> Bool {
+        for el in elements {
+            guard let fn = el.expression.as(FunctionCallExprSyntax.self) else { continue }
+            guard fn.calledExpression.as(MemberAccessExprSyntax.self)!.name.text == "package" else { return false }
+            guard let url = fn.getStringArgumentValue(name: "url") else { return false }
+            return url == packageInfo.url.absoluteString
+        }
+        return false
     }
 }
