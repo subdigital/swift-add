@@ -1,5 +1,6 @@
 import SwiftSyntax
 
+@available(macOS 10.13, *)
 extension FunctionCallExprSyntax {
     func findArgumentIndex(name: String) -> Int? {
         argumentList
@@ -38,23 +39,23 @@ extension FunctionCallExprSyntax {
             return
         }
 
-        var tuple = TupleExprElementSyntax { builder in
-            builder.useLabel(SyntaxFactory.makeIdentifier(name))
-            builder.useColon(SyntaxFactory.makeColonToken(trailingTrivia: .spaces(1)))
-            builder.useExpression(ExprSyntax(expr))
-        }
-        var argList = argumentList
-        argList.ensuresTrailingCommaAfterElementAtIndex(index, trailingTrivia: onNewLine ? .zero : .spaces(1))
-
-        let newArgIndex = index + 1
-        if newArgIndex < argList.count - 1 {
-            let commaTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .spaces(1)
-            tuple = tuple.withTrailingComma(SyntaxFactory.makeCommaToken(trailingTrivia: commaTrivia))
-        }
-        let argTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .zero
-        argList = argList.inserting(tuple.withLeadingTrivia(argTrivia),
-            at: newArgIndex)
-        self.argumentList = argList
+//        var tuple = TupleExprElementSyntax { builder in
+//            builder.useLabel(SyntaxFactory.makeIdentifier(name))
+//            builder.useColon(SyntaxFactory.makeColonToken(trailingTrivia: .spaces(1)))
+//            builder.useExpression(ExprSyntax(expr))
+//        }
+//        var argList = argumentList
+//        argList.ensuresTrailingCommaAfterElementAtIndex(index, trailingTrivia: onNewLine ? .zero : .spaces(1))
+//
+//        let newArgIndex = index + 1
+//        if newArgIndex < argList.count - 1 {
+//            let commaTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .spaces(1)
+//            tuple = tuple.withTrailingComma(SyntaxFactory.makeCommaToken(trailingTrivia: commaTrivia))
+//        }
+//        let argTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .zero
+//        argList = argList.inserting(tuple.withLeadingTrivia(argTrivia),
+//            at: newArgIndex)
+//        self.argumentList = argList
     }
 }
 
@@ -88,30 +89,31 @@ extension ArrayExprSyntax {
         func newLineIndent() -> Trivia {
             .newlines(1).appending(.spaces(4 * (baseIndentLevel + 1)))
         }
+        fatalError()
 
-        return ArrayExprSyntax { builder in
-            builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(
-                trailingTrivia: newLineIndent()))
-
-            let allElements = (elements + newElements)
-
-            // add existing elements
-            for (index, var el) in allElements.enumerated() {
-                let isLastElement = index == allElements.count - 1
-                if !isLastElement {
-                    el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
-                }
-
-                builder.addElement(el
-                    .withLeadingTrivia(.zero)
-                    .withTrailingTrivia(
-                        isLastElement ? newLine() : newLineIndent()
-                    )
-                )
-            }
-
-            builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())
-        }
+//        return ArrayExprSyntax { builder in
+//            builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken(
+//                trailingTrivia: newLineIndent()))
+//
+//            let allElements = (elements + newElements)
+//
+//            // add existing elements
+//            for (index, var el) in allElements.enumerated() {
+//                let isLastElement = index == allElements.count - 1
+//                if !isLastElement {
+//                    el = el.withTrailingComma(SyntaxFactory.makeCommaToken())
+//                }
+//
+//                builder.addElement(el
+//                    .withLeadingTrivia(.zero)
+//                    .withTrailingTrivia(
+//                        isLastElement ? newLine() : newLineIndent()
+//                    )
+//                )
+//            }
+//
+//            builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken())
+//        }
     }
 }
 
@@ -120,15 +122,15 @@ extension TupleExprElementListSyntax {
         guard let (index, arg) = enumerated().first(where: { $0.element.label?.text == name }) else { return }
         let needsTrailingComma = index < count - 1
 
-        let newArg = TupleExprElementSyntax { builder in
-            builder.useLabel(SyntaxFactory.makeIdentifier(name))
-            builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-            builder.useExpression(ExprSyntax(expression))
-            if needsTrailingComma {
-                builder.useTrailingComma(SyntaxFactory.makeCommaToken())
-            }
-        }
-        .withLeadingTrivia(arg.leadingTrivia ?? .zero)
-        self = replacing(childAt: index, with: newArg)
+//        let newArg = TupleExprElementSyntax { builder in
+//            builder.useLabel(SyntaxFactory.makeIdentifier(name))
+//            builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
+//            builder.useExpression(ExprSyntax(expression))
+//            if needsTrailingComma {
+//                builder.useTrailingComma(SyntaxFactory.makeCommaToken())
+//            }
+//        }
+//        .withLeadingTrivia(arg.leadingTrivia ?? .zero)
+//        self = replacing(childAt: index, with: newArg)
     }
 }

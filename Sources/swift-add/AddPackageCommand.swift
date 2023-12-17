@@ -1,7 +1,9 @@
 import ArgumentParser
 import Foundation
 import PackageModel
+import SwiftParser
 import SwiftSyntax
+import SwiftSyntaxParser
 
 struct AddPackageCommand: AsyncParsableCommand {
     @Argument(help: "The package to add")
@@ -48,7 +50,7 @@ struct AddPackageCommand: AsyncParsableCommand {
     private func addPackageToManifest(_ package: PackageInfo) async throws {
         // assume for now the current directory is where our Package.swift file is
         let packageURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Package.swift")
-        let file = try SyntaxParser.parse(packageURL)
+        let file = try SyntaxParser.parse(packageURL, diagnosticHandler: debugDiagnostics)
         let productInfos = package.products.filter { p in
             products.map { $0.lowercased() }.contains(p.name.lowercased())
         }
@@ -76,6 +78,10 @@ struct AddPackageCommand: AsyncParsableCommand {
     private func fetchPackageFromGithub() async throws -> PackageInfo {
         let source = try await GithubPackageSource(shortRepo: packageName)
         return try await source.assemblePackage()
+    }
+
+    private func debugDiagnostics(_ diagnostic: Diagnostic) {
+        print("\(diagnostic)")
     }
 }
 
