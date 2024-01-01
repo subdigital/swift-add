@@ -1,4 +1,5 @@
 import SwiftSyntax
+import SwiftSyntaxBuilder
 
 class PackageDependencyRewriter: SyntaxRewriter {
     let packageToAdd: PackageInfo
@@ -17,18 +18,17 @@ class PackageDependencyRewriter: SyntaxRewriter {
 
     override func visit(_ node: FunctionCallExprSyntax) -> ExprSyntax {
         self.rootNode = node
-        guard node.calledExpression.as(IdentifierExprSyntax.self)?.identifier.text == "Package" else {
+        guard node.calledExpression.as(DeclReferenceExprSyntax.self)?.baseName.text == "Package" else {
             return ExprSyntax(node)
         }
         var node = node
 
+        // create a dependencies section if there isn't one already
         if !node.hasArgument(name: "dependencies", type: ArrayExprSyntax.self) {
-            let blankArray = SyntaxFactory.makeArrayExpr(
-                leftSquare: SyntaxFactory.makeLeftSquareBracketToken(),
-                elements: SyntaxFactory.makeBlankArrayElementList(),
-                rightSquare: SyntaxFactory.makeRightSquareBracketToken(leadingTrivia: .newlines(1).appending(.spaces(4)))
-            )
-            node.insertArgument(name: "dependencies", onNewLine: true, expr: blankArray, after: "platform", "name")
+            let arraySyntax = ArrayExprSyntax {
+
+            }
+            node.insertArgument(name: "dependencies", onNewLine: true, expr: arraySyntax, after: "platform", "name")
         }
 
         addPackageToDependenciesArray(call: &node)
@@ -55,22 +55,17 @@ class PackageDependencyRewriter: SyntaxRewriter {
             return
         }
 
-//        if let (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
+        if let (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
+
+            let newElements = products.compactMap { product in
+                ArrayElementSyntax(self.createTargetDependency(product: product))
+            }
+            let newArray = depsArray.appendingElementsFormatted(elements: newElements, baseIndentLevel: 2)
+
+            targetCall.arguments.replaceArgument(name: "dependencies", expression: ExprSyntax(newArray))
+//            let modifiedTargets = targets.elements.replacing(childAt: 0, with: ArrayElementSyntax(targetCall)
 //
-//            let newElements = products.map { product in
-//                ArrayElementSyntax {
-//                    $0.useExpression(self.createTargetDependency(product: product))
-//                }
-//            }
-//            let newArray = depsArray.appendingElementsFormatted(elements: newElements, baseIndentLevel: 2)
-//
-//            targetCall.argumentList.replaceArgument(name: "dependencies", expression: ExprSyntax(newArray))
-//            let modifiedTargets = targets.elements.replacing(childAt: 0, with: ArrayElementSyntax {
-//                $0.useExpression(ExprSyntax(targetCall))
-//                if targets.elements.count > 1 {
-//                    $0.useTrailingComma(SyntaxFactory.makeCommaToken())
-//                }
-//            })
+//                                                             ArrayEx
 //            var array = ArrayExprSyntax { builder in
 //                builder.useLeftSquare(SyntaxFactory.makeLeftSquareBracketToken())
 //                builder.useRightSquare(SyntaxFactory.makeRightSquareBracketToken()
@@ -78,37 +73,14 @@ class PackageDependencyRewriter: SyntaxRewriter {
 //            }
 //            array.elements = modifiedTargets
 //            call.argumentList.replaceArgument(name: "targets", expression: array)
-//        } else {
+        } else {
             // insert new dependencies section
         }
     }
 
     private func createTargetDependency(product: ProductInfo) -> ExprSyntax {
         // .product(name: ..., package: ...)
-//        ExprSyntax(
-//            FunctionCallExprSyntax { fn in
-//                fn.useCalledExpression(
-//                    ExprSyntax(
-//                        MemberAccessExprSyntax { memberAccess in
-//                            memberAccess.useDot(SyntaxFactory.makePrefixPeriodToken())
-//                            memberAccess.useName(SyntaxFactory.makeIdentifier("product"))
-//                        }
-//                    )
-//                )
-//                fn.useLeftParen(SyntaxFactory.makeLeftParenToken())
-//                fn.addArgument(.init { arg in
-//                    arg.useLabel(SyntaxFactory.makeIdentifier("name"))
-//                    arg.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-//                    arg.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(product.name)))
-//                }.withTrailingComma(SyntaxFactory.makeCommaToken().withTrailingTrivia(.spaces(1))))
-//                fn.addArgument(.init { arg in
-//                    arg.useLabel(SyntaxFactory.makeIdentifier("package"))
-//                    arg.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-//                    arg.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(packageToAdd.name)))
-//                })
-//                fn.useRightParen(SyntaxFactory.makeRightParenToken())
-//            }
-//        )
+        return ExprSyntax(stringLiteral: #".product(name: "\#(product.name)", package: "\#(packageToAdd.name)""#)
     }
 
     func addPackageToDependenciesArray(call: inout FunctionCallExprSyntax) {
@@ -117,62 +89,33 @@ class PackageDependencyRewriter: SyntaxRewriter {
             return
         }
 
-//        let package = makePackageDependency()
-//        guard !dependencies.containsPackage(self.packageToAdd) else { return }
-//
-//        dependencies.ensuresTrailingCommaOnLastElement()
-//        let element = SyntaxFactory
-//            .makeArrayElement(expression: ExprSyntax(package), trailingComma: nil)
-//            .withLeadingTrivia(.newlines(1).appending(.spaces(8)))
-//        dependencies = dependencies.addElement(element)
-//
-//        call.argumentList.replaceArgument(name: "dependencies", expression: dependencies)
+        let package = makePackageDependency()
+        guard !dependencies.containsPackage(self.packageToAdd) else { return }
+
+        dependencies.ensuresTrailingCommaOnLastElement()
+        let leading = Trivia.newline.appending(TriviaPiece.spaces(8))
+        let element = ArrayElementSyntax(leadingTrivia: leading, expression: package)
+        dependencies.elements.append(element)
+        dependencies.leadingTrivia = .space
+
+        call.arguments.replaceArgument(name: "dependencies", expression: dependencies)
     }
 
     func makePackageDependency() -> FunctionCallExprSyntax {
-//        let memberAccess = MemberAccessExprSyntax { builder in
-//            builder.useDot(SyntaxFactory.makePrefixPeriodToken())
-//            builder.useName(SyntaxFactory.makeIdentifier("package"))
-//        }
-//
-//        return FunctionCallExprSyntax { builder in
-//            builder.useCalledExpression(ExprSyntax(memberAccess))
-//            builder.useLeftParen(SyntaxFactory.makeLeftParenToken())
-//
-//            // name: "...",
-//            builder.addArgument(TupleExprElementSyntax { builder in
-//                builder.useLabel(SyntaxFactory.makeIdentifier("name"))
-//                builder.useColon(SyntaxFactory.makeColonToken(trailingTrivia: .spaces(1)))
-//                builder.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(packageToAdd.name)))
-//                builder.useTrailingComma(SyntaxFactory.makeCommaToken())
-//            }.withTrailingTrivia(.spaces(1)))
-//
-//            // url: "....",
-//            builder.addArgument(TupleExprElementSyntax { builder in
-//                builder.useLabel(SyntaxFactory.makeIdentifier("url"))
-//                builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-//                builder.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(packageToAdd.url.absoluteString)))
-//                builder.useTrailingComma(SyntaxFactory.makeCommaToken())
-//            }.withTrailingTrivia(.spaces(1)))
-//
-//            // from
-//            builder.addArgument(TupleExprElementSyntax { builder in
-//                builder.useLabel(SyntaxFactory.makeIdentifier("from"))
-//                builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-//                builder.useExpression(ExprSyntax(SyntaxFactory.makeStringLiteralExpr(packageToAdd.version)))
-//            })
-//
-//            builder.useRightParen(SyntaxFactory.makeRightParenToken())
-//        }
-        fatalError()
+        // .package(name: "...", url: "...", from: "...")
+        let version = packageToAdd.versions.last ?? "0.0.1"
+        return FunctionCallExprSyntax(
+            ExprSyntax(stringLiteral: #".package(name: "\#(packageToAdd.name)", url: "\#(packageToAdd.url)", from: "\#(version)")"#)
+        )!
     }
 }
+
 
 extension ArrayExprSyntax {
     func containsPackage(_ packageInfo: PackageInfo) -> Bool {
         for el in elements {
             guard let fn = el.expression.as(FunctionCallExprSyntax.self) else { continue }
-            guard fn.calledExpression.as(MemberAccessExprSyntax.self)!.name.text == "package" else { return false }
+            guard fn.calledExpression.as(MemberAccessExprSyntax.self)!.declName.baseName.text == "package" else { return false }
             guard let url = fn.getStringArgumentValue(name: "url") else { return false }
             return url == packageInfo.url.absoluteString
         }

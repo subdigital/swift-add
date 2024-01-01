@@ -59,17 +59,15 @@ extension FunctionCallExprSyntax {
     }
 }
 
-extension TupleExprElementListSyntax {
-    mutating func ensuresTrailingCommaAfterElementAtIndex(_ index: Int, trailingTrivia: Trivia = .zero) {
-        guard !isEmpty else { return }
-
-        let childIndex = children.index(children.startIndex, offsetBy: index)
-
-        // take the last one and append a trailing comma
-        var el = self[childIndex]
-        el.trailingComma = SyntaxFactory.makeCommaToken(trailingTrivia: .zero)
-        self = replacing(childAt: index, with: el)
-    }
+extension LabeledExprSyntax {
+//    mutating func ensuresTrailingCommaAfterElementAtIndex(_ index: Int, trailingTrivia: Trivia = .zero) {
+//        let childIndex = children.index(children.startIndex, offsetBy: index)
+//
+//        // take the last one and append a trailing comma
+//        var el = self[childIndex]
+//        el.trailingComma = SyntaxFactory.makeCommaToken(trailingTrivia: .zero)
+//        self = replacing(childAt: index, with: el)
+//    }
 }
 
 extension ArrayExprSyntax {
@@ -78,16 +76,18 @@ extension ArrayExprSyntax {
 
         // take the last one and append a trailing comma
         var lastElement = elements.last!
-        lastElement.trailingComma = SyntaxFactory.makeCommaToken()
-        elements = elements.replacing(childAt: elements.count - 1, with: lastElement)
+//        lastElement.trailingComma = TokenSyntax(
+//        elements = elements.replacing(childAt: elements.count - 1, with: lastElement)
+        let index = elements.index(before: elements.endIndex)
+        elements = elements.with(\.[index], lastElement)
     }
 
     func appendingElementsFormatted(elements newElements: [ArrayElementSyntax], baseIndentLevel: Int) -> Self {
         func newLine() -> Trivia {
-            .newlines(1).appending(.spaces(4 * baseIndentLevel))
+            Trivia.newline.appending(Trivia.spaces(4 * baseIndentLevel))
         }
         func newLineIndent() -> Trivia {
-            .newlines(1).appending(.spaces(4 * (baseIndentLevel + 1)))
+            Trivia.newline.appending(Trivia.spaces(4 * (baseIndentLevel + 1)))
         }
         fatalError()
 
@@ -117,20 +117,24 @@ extension ArrayExprSyntax {
     }
 }
 
-extension TupleExprElementListSyntax {
+extension LabeledExprListSyntax {
     mutating func replaceArgument<S: ExprSyntaxProtocol>(name: String, expression: S) {
-        guard let (index, arg) = enumerated().first(where: { $0.element.label?.text == name }) else { return }
-        let needsTrailingComma = index < count - 1
+        guard let index = firstIndex(where: { $0.label?.text == name }) else {
+            assertionFailure("Cannot find argument named: `\(name)` in \(self.description)")
+            return
+        }
 
-//        let newArg = TupleExprElementSyntax { builder in
-//            builder.useLabel(SyntaxFactory.makeIdentifier(name))
-//            builder.useColon(SyntaxFactory.makeColonToken().withTrailingTrivia(.spaces(1)))
-//            builder.useExpression(ExprSyntax(expression))
-//            if needsTrailingComma {
-//                builder.useTrailingComma(SyntaxFactory.makeCommaToken())
-//            }
-//        }
-//        .withLeadingTrivia(arg.leadingTrivia ?? .zero)
-//        self = replacing(childAt: index, with: newArg)
+        let arg = self[index]
+        let needsTrailingComma = index < self.index(before: endIndex)
+
+        let newArg = LabeledExprSyntax(
+            leadingTrivia: arg.leadingTrivia,
+            label: .identifier(name),
+            colon: .colonToken(),
+            expression: expression,
+            trailingComma: needsTrailingComma ? .commaToken() : nil,
+            trailingTrivia: nil
+        )
+        self = self.with(\.[index], newArg)
     }
 }

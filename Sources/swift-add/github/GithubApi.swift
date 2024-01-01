@@ -1,7 +1,6 @@
 import Foundation
 
 enum Github {
-
     struct TagRef: Decodable {
         let ref: String
         var tag: String? {

@@ -2,12 +2,48 @@
   "object": {
     "pins": [
       {
+        "package": "Difference",
+        "repositoryURL": "https://github.com/krzysztofzablocki/Difference.git",
+        "state": {
+          "branch": null,
+          "revision": "f627d00718033c3d7888acd5f4e3524a843db1cf",
+          "version": "1.0.2"
+        }
+      },
+      {
+        "package": "Rainbow",
+        "repositoryURL": "https://github.com/onevcat/Rainbow",
+        "state": {
+          "branch": null,
+          "revision": "e0dada9cd44e3fa7ec3b867e49a8ddbf543e3df3",
+          "version": "4.0.1"
+        }
+      },
+      {
         "package": "swift-argument-parser",
         "repositoryURL": "https://github.com/apple/swift-argument-parser.git",
         "state": {
           "branch": null,
-          "revision": "e394bf350e38cb100b6bc4172834770ede1b7232",
-          "version": "1.0.3"
+          "revision": "8f4d2753f0e4778c76d5f05ad16c74f707390531",
+          "version": "1.2.3"
+        }
+      },
+      {
+        "package": "swift-asn1",
+        "repositoryURL": "https://github.com/apple/swift-asn1.git",
+        "state": {
+          "branch": null,
+          "revision": "805deae27a7506dcad043604c00a9dc52d465dcb",
+          "version": "0.7.0"
+        }
+      },
+      {
+        "package": "swift-certificates",
+        "repositoryURL": "https://github.com/apple/swift-certificates.git",
+        "state": {
+          "branch": null,
+          "revision": "35a7df2d9d71c401a47de9be2e3de629a01370c2",
+          "version": "0.4.1"
         }
       },
       {
@@ -15,8 +51,8 @@
         "repositoryURL": "https://github.com/apple/swift-collections.git",
         "state": {
           "branch": null,
-          "revision": "f504716c27d2e5d4144fa4794b12129301d17729",
-          "version": "1.0.3"
+          "revision": "a902f1823a7ff3c9ab2fba0f992396b948eda307",
+          "version": "1.0.5"
         }
       },
       {
@@ -24,16 +60,25 @@
         "repositoryURL": "https://github.com/apple/swift-crypto.git",
         "state": {
           "branch": null,
-          "revision": "ddb07e896a2a8af79512543b1c7eb9797f8898a5",
-          "version": "1.1.7"
+          "revision": "33a20e650c33f6d72d822d558333f2085effa3dc",
+          "version": "2.5.0"
+        }
+      },
+      {
+        "package": "swift-custom-dump",
+        "repositoryURL": "https://github.com/pointfreeco/swift-custom-dump",
+        "state": {
+          "branch": null,
+          "revision": "aedcf6f4cd486ccef5b312ccac85d4b3f6e58605",
+          "version": "1.1.2"
         }
       },
       {
         "package": "swift-driver",
         "repositoryURL": "https://github.com/apple/swift-driver.git",
         "state": {
-          "branch": "release/5.7",
-          "revision": "82b274af66cfbb8f3131677676517b34d01e30fd",
+          "branch": "release/5.9",
+          "revision": "1b2b851ae4718caffa5f18fd1861bc0ddd1791a3",
           "version": null
         }
       },
@@ -41,8 +86,8 @@
         "package": "llbuild",
         "repositoryURL": "https://github.com/apple/swift-llbuild.git",
         "state": {
-          "branch": "release/5.7",
-          "revision": "564424db5fdb62dcb5d863bdf7212500ef03a87b",
+          "branch": "release/5.9",
+          "revision": "d73a305d6e5a82e4bf3bf1727da3d1376e87efab",
           "version": null
         }
       },
@@ -50,18 +95,18 @@
         "package": "SwiftPM",
         "repositoryURL": "https://github.com/apple/swift-package-manager.git",
         "state": {
-          "branch": "release/5.7",
-          "revision": "bf28632238dc109c25b4ce9258fb0515a44be7d5",
+          "branch": "release/5.9",
+          "revision": "2b7ebe65a258faf26e7bf57c3b7a36d727017518",
           "version": null
         }
       },
       {
-        "package": "SwiftSyntax",
+        "package": "swift-syntax",
         "repositoryURL": "https://github.com/apple/swift-syntax.git",
         "state": {
-          "branch": "main",
-          "revision": "856b5851f056ac81ecdecd7dacef57e15cbe0bb4",
-          "version": null
+          "branch": null,
+          "revision": "6ad4ea24b01559dde0773e3d091f1b9e36175036",
+          "version": "509.0.2"
         }
       },
       {
@@ -77,9 +122,18 @@
         "package": "swift-tools-support-core",
         "repositoryURL": "https://github.com/apple/swift-tools-support-core.git",
         "state": {
-          "branch": "release/5.7",
-          "revision": "afc0938503bac012f76ceb619d031f63edc4c5f7",
+          "branch": "release/5.9",
+          "revision": "5665fc7641ce1a971ad06faaa476862b222ef44b",
           "version": null
+        }
+      },
+      {
+        "package": "xctest-dynamic-overlay",
+        "repositoryURL": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+        "state": {
+          "branch": null,
+          "revision": "23cbf2294e350076ea4dbd7d5d047c1e76b03631",
+          "version": "1.0.2"
         }
       },
       {
@@ -87,8 +141,8 @@
         "repositoryURL": "https://github.com/jpsim/Yams.git",
         "state": {
           "branch": null,
-          "revision": "9ff1cc9327586db4e0c8f46f064b6a82ec1566fa",
-          "version": "4.0.6"
+          "revision": "0d9ee7ea8c4ebd4a489ad7a73d5c6cad55d6fed3",
+          "version": "5.0.6"
         }
       }
     ]

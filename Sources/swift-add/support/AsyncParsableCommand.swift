@@ -1,5 +1,6 @@
 import ArgumentParser
 
+/// Provides an async argument parser command variant.
 protocol AsyncParsableCommand: ParsableCommand {
     mutating func runAsync() async throws
 }

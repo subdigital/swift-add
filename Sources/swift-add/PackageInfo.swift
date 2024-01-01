@@ -3,7 +3,7 @@ import Foundation
 struct PackageInfo {
     let name: String
     let url: URL
-    let version: String
+    let versions: [String]
     let products: [ProductInfo]
 }
 
