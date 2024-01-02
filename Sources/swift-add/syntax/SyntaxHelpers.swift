@@ -2,23 +2,25 @@ import SwiftSyntax
 
 @available(macOS 10.13, *)
 extension FunctionCallExprSyntax {
-    func findArgumentIndex(name: String) -> Int? {
-        argumentList
-            .enumerated()
-            .first { $0.element.label?.text == name }
-            .map { $0.offset }
+    func findArgumentIndex(name: String) -> SyntaxChildrenIndex? {
+        zip(arguments, arguments.indices)
+            .first { (arg, index) in
+                arg.label?.text == name
+            }
+            .map { (_, index) in index }
     }
 
-    func findArgument<T: ExprSyntaxProtocol>(name: String, as type: T.Type) -> (Int, T)? {
-        argumentList
-            .enumerated()
-            .first { $0.element.label?.text == name }
-            .flatMap {
-                guard let expr = $0.element.expression.as(type) else {
-                    print("Expression \($0.element.expression.syntaxNodeType) cannot to be casted as \(type)")
+    func findArgument<T: ExprSyntaxProtocol>(name: String, as type: T.Type) -> (SyntaxChildrenIndex, T)? {
+        zip(arguments, arguments.indices)
+            .first { (arg, index) in
+                arg.label?.text == name
+            }
+            .flatMap { (arg, index) in
+                guard let expr = arg.expression.as(type) else {
+                    assertionFailure("Expression \(arg.expression.syntaxNodeType) cannot to be casted as \(type)")
                     return nil
                 }
-                return ($0.offset, expr)
+                return (index, expr)
             }
     }
 
@@ -35,39 +37,43 @@ extension FunctionCallExprSyntax {
 
     mutating func insertArgument<T: ExprSyntaxProtocol>(name: String, onNewLine: Bool, expr: T, after: String...) {
         guard let index = after.lazy.compactMap(findArgumentIndex).first else {
-            print("Couldn't find any arg named: \(after)")
+            assertionFailure("Couldn't find any arg named: \(after)")
             return
         }
 
-//        var tuple = TupleExprElementSyntax { builder in
-//            builder.useLabel(SyntaxFactory.makeIdentifier(name))
-//            builder.useColon(SyntaxFactory.makeColonToken(trailingTrivia: .spaces(1)))
-//            builder.useExpression(ExprSyntax(expr))
-//        }
-//        var argList = argumentList
-//        argList.ensuresTrailingCommaAfterElementAtIndex(index, trailingTrivia: onNewLine ? .zero : .spaces(1))
-//
-//        let newArgIndex = index + 1
-//        if newArgIndex < argList.count - 1 {
-//            let commaTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .spaces(1)
-//            tuple = tuple.withTrailingComma(SyntaxFactory.makeCommaToken(trailingTrivia: commaTrivia))
-//        }
-//        let argTrivia: Trivia = onNewLine ? .newlines(1).appending(.spaces(4)) : .zero
-//        argList = argList.inserting(tuple.withLeadingTrivia(argTrivia),
-//            at: newArgIndex)
-//        self.argumentList = argList
+        var argList = arguments
+        let newArgIndex = arguments.index(after: index)
+        let isLastArgument = index >= arguments.index(before: arguments.endIndex)
+        let leadingTrivia: Trivia? = onNewLine ? .newlines(1).appending(TriviaPiece.spaces(4)) : nil
+
+        var arg = LabeledExprSyntax(
+            leadingTrivia: leadingTrivia,
+            label: .identifier(name),
+            colon: .colonToken(trailingTrivia: .space),
+            expression: expr,
+            trailingComma: isLastArgument ? .commaToken() : nil,
+            trailingTrivia: onNewLine ? .newline.appending(TriviaPiece.spaces(4)) : nil
+        )
+        argList.ensuresTrailingCommaAfterElementAtIndex(index, trailingTrivia: onNewLine ? nil : .space)
+
+        argList.insert(arg, at: newArgIndex)
+        self.arguments = argList
     }
 }
 
-extension LabeledExprSyntax {
-//    mutating func ensuresTrailingCommaAfterElementAtIndex(_ index: Int, trailingTrivia: Trivia = .zero) {
-//        let childIndex = children.index(children.startIndex, offsetBy: index)
-//
-//        // take the last one and append a trailing comma
-//        var el = self[childIndex]
-//        el.trailingComma = SyntaxFactory.makeCommaToken(trailingTrivia: .zero)
-//        self = replacing(childAt: index, with: el)
-//    }
+extension LabeledExprListSyntax {
+    mutating func ensuresTrailingCommaAfterElementAtIndex(_ childIndex: SyntaxChildrenIndex, trailingTrivia: Trivia? = nil) {
+        // take the last one and append a trailing comma
+        var el = self[childIndex]
+        el.trailingComma = .commaToken()
+        self = self.with(\.[childIndex], el)
+    }
+
+    mutating func ensuresTrailingCommaAfterElementAtIndex(_ index: Int, trailingTrivia: Trivia? = nil) {
+        let children = self.children(viewMode: .sourceAccurate)
+        let childIndex = children.index(children.startIndex, offsetBy: index)
+        ensuresTrailingCommaAfterElementAtIndex(childIndex, trailingTrivia: trailingTrivia)
+    }
 }
 
 extension ArrayExprSyntax {
@@ -76,8 +82,7 @@ extension ArrayExprSyntax {
 
         // take the last one and append a trailing comma
         var lastElement = elements.last!
-//        lastElement.trailingComma = TokenSyntax(
-//        elements = elements.replacing(childAt: elements.count - 1, with: lastElement)
+        lastElement.trailingComma = .commaToken()
         let index = elements.index(before: elements.endIndex)
         elements = elements.with(\.[index], lastElement)
     }

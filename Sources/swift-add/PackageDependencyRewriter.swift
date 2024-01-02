@@ -13,7 +13,7 @@ class PackageDependencyRewriter: SyntaxRewriter {
     private var rootNode: FunctionCallExprSyntax!
 
     func indent(level: Int, withNewLine: Bool = false) -> Trivia {
-        .newlines(withNewLine ? 1 : 0).appending(deriveIndentationTrivia(rootNode, level: level))
+        .newlines(withNewLine ? 1 : 0).appending(deriveIndentationTrivia(level: level))
     }
 
     override func visit(_ node: FunctionCallExprSyntax) -> ExprSyntax {
@@ -37,7 +37,7 @@ class PackageDependencyRewriter: SyntaxRewriter {
         return ExprSyntax(node)
     }
 
-    func deriveIndentationTrivia(_ call: FunctionCallExprSyntax, level: Int) -> TriviaPiece {
+    func deriveIndentationTrivia(level: Int) -> TriviaPiece {
         .spaces(4 * level)
     }
 
@@ -56,7 +56,6 @@ class PackageDependencyRewriter: SyntaxRewriter {
         }
 
         if let (_, depsArray) = targetCall.findArgument(name: "dependencies", as: ArrayExprSyntax.self) {
-
             let newElements = products.compactMap { product in
                 ArrayElementSyntax(self.createTargetDependency(product: product))
             }
@@ -85,16 +84,18 @@ class PackageDependencyRewriter: SyntaxRewriter {
 
     func addPackageToDependenciesArray(call: inout FunctionCallExprSyntax) {
         guard var (_, dependencies) = call.findArgument(name: "dependencies", as: ArrayExprSyntax.self) else {
-            // TODO: add dependencies section
-            return
+            preconditionFailure("This method assumes the dependencies argument has already been added.")
         }
 
         let package = makePackageDependency()
         guard !dependencies.containsPackage(self.packageToAdd) else { return }
 
         dependencies.ensuresTrailingCommaOnLastElement()
-        let leading = Trivia.newline.appending(TriviaPiece.spaces(8))
-        let element = ArrayElementSyntax(leadingTrivia: leading, expression: package)
+        let element = ArrayElementSyntax(
+            leadingTrivia: indent(level: 2, withNewLine: true),
+            expression: package,
+            trailingTrivia: indent(level: 1, withNewLine: true)
+        )
         dependencies.elements.append(element)
         dependencies.leadingTrivia = .space
 

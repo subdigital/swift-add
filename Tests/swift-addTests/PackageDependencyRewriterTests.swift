@@ -58,21 +58,21 @@ final class PackageDependencyRewriterTests: XCTestCase {
             name: "DemoPackage"
         )
         """
-//        let file = try SyntaxParser.parse(source: packageSwiftWithNoDeps)
-//        var output = ""
-//        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
-//        let expected = """
-//        import PackageDescription
-//
-//        let package = Package(
-//            name: "DemoPackage",
-//            dependencies: [
-//                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
-//            ]
-//        )
-//        """
-//        XCTAssertEqual(output, expected)
-        XCTFail()
+
+       let file = Parser.parse(source: packageSwiftWithNoDeps)
+       var output = ""
+       PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
+       let expected = """
+       import PackageDescription
+
+       let package = Package(
+           name: "DemoPackage",
+           dependencies: [
+               .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+           ]
+       )
+       """
+       XCTAssertNoDifference(output, expected)
     }
 
     func testAddsDependencyToFirstTarget() throws {
@@ -81,27 +81,26 @@ final class PackageDependencyRewriterTests: XCTestCase {
                                                               .product(name: "foo")
                                                           ])
                                                   """)
-//        let file = try SyntaxParser.parse(source: packageSwift)
-//        var output = ""
-//        PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
-//        let expected = """
-//        import PackageDescription
-//
-//        let package = Package(
-//            name: "DemoPackage",
-//            dependencies: [
-//                .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
-//                .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
-//            ],
-//            targets: [
-//                .target(name: "dummy", dependencies: [
-//                    .product(name: "foo"),
-//                    .product(name: "Files", package: "Files")
-//                ])
-//            ])
-//        """
-//        XCTAssertEqual(output, expected)
-        XCTFail()
+       let file = Parser.parse(source: packageSwift)
+       var output = ""
+       PackageDependencyRewriter(packageToAdd: package, products: [package.products.first!]).visit(file).write(to: &output)
+       let expected = """
+       import PackageDescription
+
+       let package = Package(
+           name: "DemoPackage",
+           dependencies: [
+               .package(url: "https://github.com/apple/swift-argument-parser.git", from: "0.4.3"),
+               .package(name: "Files", url: "https://github.com/johnsundell/Files.git", from: "0.4.1")
+           ],
+           targets: [
+               .target(name: "dummy", dependencies: [
+                   .product(name: "foo"),
+                   .product(name: "Files", package: "Files")
+               ])
+           ])
+       """
+       XCTAssertEqual(output, expected)
     }
 
     func testAddsDependencyToFirstTargetWithInlineEmptyArray() throws {
